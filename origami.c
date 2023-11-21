@@ -118,7 +118,6 @@ int main(){
         double x = 0, y = 0;
         scanf("%d %lf %lf", &k, &x, &y);
         printf("%d\n", ileWkartce(kartki, k-1, x, y));
-        fflush(stdout);
     }
     // Zwalniamy pamięć
     /*

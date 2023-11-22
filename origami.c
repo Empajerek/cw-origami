@@ -83,7 +83,8 @@ int main(){
     // Wczytywanie kolejnych kartek, i zapisywanie ich w tablicy
     for(int i = 0; i < n; i++){
         char typ = 0;
-        scanf(" %c", &typ);
+        while ((getchar()) != '\n');
+        scanf("%c", &typ);
         switch(typ){
             case 'P':{
                 kartki[i].typ = P;

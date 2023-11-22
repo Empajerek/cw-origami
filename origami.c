@@ -3,16 +3,18 @@
 #define EPS 1e-10
 #define SQ(x) (x)*(x)
 
+// Deklaracje rónych typów kartek, i pojemnika "kartka", 
+// przechowującego kartkę i jej typ
 typedef struct pro{ double x1, y1, x2, y2; } pro;
 typedef struct kol{ double x, y, r; } kol;
 typedef struct zgi{ double x1, y1, x2, y2; int k; } zgi;
 typedef enum { K, P, Z } typ_kartki;
 typedef struct kartka { typ_kartki typ; void* kartka; } kartka;
 
+// Sprawdzamy ile razy dany punkt znajduje się w danej kartce.
 int ileWkartce(kartka* kartki, int k, double x, double y){
     switch(kartki[k].typ){
-        
-        case P: {
+        case P: { // nawiasy ponieważ deklarujemy zmienne w case'ach
             pro prostokat = *((pro*) kartki[k].kartka);
             // jeśli w prostokącie, wyrzuć 1, jeśli nie wyrzuć 0
             if(prostokat.x1 <= x + EPS && x - EPS <= prostokat.x2 &&
@@ -33,8 +35,10 @@ int ileWkartce(kartka* kartki, int k, double x, double y){
             if((x - zgiecie.x1)*(zgiecie.y2 - zgiecie.y1) >= 
                (zgiecie.x2 - zgiecie.x1)*(y - zgiecie.y1))
                 return 0;
-            // jeśli po dobrej, daj dwa rekursywne zapytania niżej,
-            // i zsumuj, wyrzuć wynik
+            // jeśli po dobrej, odbij punkt według odcinka P1-P2 zrób dwa 
+            // rekursywne zapytania niżej, zsumuj, i wyrzuć wynik
+
+            // TO DO: napisz to solidnie
             double b = (zgiecie.y2 - zgiecie.y1) / (zgiecie.x1 - zgiecie.x2);
             double c = (zgiecie.y1 * zgiecie.x2 - zgiecie.x1 * zgiecie.y2)
                          / (zgiecie.x1 - zgiecie.x2);
@@ -77,36 +81,40 @@ int ileWkartce(kartka* kartki, int k, double x, double y){
 */
 
 int main(){
+    // wczytujemy n q, i alokujemy miejsce na kartki
     int n = 0, q = 0;
     scanf("%d %d", &n, &q);
     kartka* kartki = malloc((unsigned) n * sizeof(kartki));
     // Wczytywanie kolejnych kartek, i zapisywanie ich w tablicy
     for(int i = 0; i < n; i++){
+        // po pierwszym znaku (P, K, lub Z) wybieramy rodzaj i zapisujemy 
+        // kartkę w pamięci
         char typ = 0;
         while ((getchar()) != '\n');
         scanf("%c", &typ);
+
         switch(typ){
             case 'P':{
                 kartki[i].typ = P;
-                pro* new_pro = malloc(sizeof(new_pro));
-                scanf("%lf %lf %lf %lf", &new_pro->x1, &new_pro->y1, 
-                                         &new_pro->x2, &new_pro->y2);
-                kartki[i].kartka = (void*) new_pro;
+                pro* nowy_pro = malloc(sizeof(*nowy_pro));
+                scanf("%lf %lf %lf %lf", &nowy_pro->x1, &nowy_pro->y1, 
+                                         &nowy_pro->x2, &nowy_pro->y2);
+                kartki[i].kartka = (void*) nowy_pro;
                 break;
             }
             case 'K':{
                 kartki[i].typ = K;
-                kol* new_kol = malloc(sizeof(new_kol));
-                scanf("%lf %lf %lf", &new_kol->x, &new_kol->y, &new_kol->r);
-                kartki[i].kartka = (void*) new_kol;
+                kol* nowy_kol = malloc(sizeof(*nowy_kol));
+                scanf("%lf %lf %lf", &nowy_kol->x, &nowy_kol->y, &nowy_kol->r);
+                kartki[i].kartka = (void*) nowy_kol;
                 break;
             }
             case 'Z': {
                 kartki[i].typ = Z;
-                zgi* new_zgi = malloc(sizeof(new_zgi));
-                scanf("%d %lf %lf %lf %lf", &new_zgi->k, &new_zgi->x1, 
-                             &new_zgi->y1, &new_zgi->x2, &new_zgi->y2);
-                kartki[i].kartka = (void*) new_zgi;
+                zgi* nowy_zgi = malloc(sizeof(*nowy_zgi));
+                scanf("%d %lf %lf %lf %lf", &nowy_zgi->k, &nowy_zgi->x1, 
+                             &nowy_zgi->y1, &nowy_zgi->x2, &nowy_zgi->y2);
+                kartki[i].kartka = (void*) nowy_zgi;
                 break;
             }
             default:

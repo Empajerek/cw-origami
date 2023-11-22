@@ -3,11 +3,13 @@
 Napisz program dla fanów origami do badania, ile warstw ma w danym punkcie sprytnie poskładana kartka papieru. Program powinien wczytać opis tworzenia kolejnych kartek origami i pytań o ilość warstw w zadanych punktach zadanych kartek z `stdin`. W pierwszym wierszu wejścia są dwie liczby `n` i `q` oznaczające odpowiednio liczbę kartek i liczbę pytań. Następnie na wejściu jest n wierszy opisujących kolejne kartki i q pytań o liczbę warstw zadanych kartek w zadanych punktach.
 
 Opis i-tej kartki (1 ≤ i ≤ n) znajduje się w wierszu i + 1. Opis ten ma jedną z trzech postaci:
+
 ```
     P x1 y1 x2 y2
     K x y r
     Z k x1 y1 x2 y2
 ```
+
 Pierwsza postać reprezentuje domknięty prostokąt o bokach równoległych do osi układu współrzędnych o lewym dolnym rogu w punkcie P<sub>1</sub> = (x<sub>1</sub>, y<sub>1</sub>) a prawym górnym w punkcie P<sub>2</sub> = (x<sub>2</sub>, y<sub>2</sub>). Punkt P<sub>1</sub> musi więc być nieostro w lewo i w dół od punktu P<sub>2</sub>. Gdy w kartkę tę wbije się szpilkę wewnątrz (lub na krawędziach) prostokąta, kartka zostanie przebita 1 raz, w pozostałych przypadkach 0 razy.
 
 Druga postać reprezentuje koło domknięte o środku w punkcie (x, y) i promieniu r.
@@ -18,11 +20,12 @@ j-te zapytanie (1 ≤ j ≤ q) znajduje się w wierszu n + j + 1 i ma postać `k
 
 Program powinien wypisać na `stdout` q wierszy - odpowiedzi na zapytania o liczbę warstw.
 
-### Uwagi: 
+## Uwagi
 
 Liczby oznaczające współrzędne punktów bądź promień koła są liczbami zmiennopozycyjnymi. Nie ma ograniczeń na złożoność czasową rozwiązania. W szczególności będą dopuszczane rozwiązania wykładnicze. Nasze testy nie są złośliwe ze względu na precyzję obliczeń.
 
 ## Przykładowe wejście
+
 ```
 4 5
 P 0 0 2.5 1
@@ -35,7 +38,9 @@ Z 3 0 1 -1 0
 3 4 4
 4 4 4
 ```
+
 ## Przykładowe wyjście
+
 ```
 1
 0

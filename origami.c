@@ -1,13 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #define EPS 1e-3
 #define SQ(x) (x)*(x)
 
 // Deklaracje rónych typów kartek, i pojemnika "kartka", 
 // przechowującego kartkę i jej typ
-typedef struct pro{ float x1, y1, x2, y2; } pro;
-typedef struct kol{ float x, y, r; } kol;
-typedef struct zgi{ float x1, y1, x2, y2; int k; } zgi;
+typedef struct pro{ double x1, y1, x2, y2; } pro;
+typedef struct kol{ double x, y, r; } kol;
+typedef struct zgi{ double x1, y1, x2, y2; int k; } zgi;
 typedef enum { K, P, Z } typ_kartki;
 typedef struct kartka { 
     typ_kartki typ; 
@@ -15,29 +16,11 @@ typedef struct kartka {
         pro kartka_pro; 
         kol kartka_kol; 
         zgi kartka_zgi; 
-        } kartka;
+    } kartka;
 } kartka;
 
-
-float q_rsqrt(float number)
-{
-        long i;
-        float x2, y;
-        const float threehalfs = 1.5F;
-
-        x2 = number * 0.5F;
-        y  = number;
-        i  = * ( long * ) &y;                       // evil floating point bit level hacking
-        i  = 0x5f3759df - ( i >> 1 );               // what the fuck?
-        y  = * ( float * ) &i;
-        y  = y * ( threehalfs - ( x2 * y * y ) );   // 1st iteration
-        y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
-
-        return y;
-}
-
 // Sprawdzamy ile razy dany punkt znajduje się w danej kartce.
-int ileWkartce(kartka* kartki, int k, float x, float y){
+int ileWkartce(kartka* kartki, int k, double x, double y){
     switch(kartki[k].typ){
         case P: { // nawiasy ponieważ deklarujemy zmienne w case'ach
             pro prostokat = kartki[k].kartka.kartka_pro;
@@ -63,14 +46,14 @@ int ileWkartce(kartka* kartki, int k, float x, float y){
             // jeśli po dobrej, odbij punkt według odcinka P1-P2 zrób dwa 
             // rekursywne zapytania niżej, zsumuj, i wyrzuć wynik
 
-            float x_norm = (zgiecie.x1 - zgiecie.x2) * q_rsqrt((SQ(zgiecie.x1 - zgiecie.x2) + SQ(zgiecie.y1 - zgiecie.y2)));
-            float y_norm = (zgiecie.y1 - zgiecie.y2) * q_rsqrt((SQ(zgiecie.x1 - zgiecie.x2) + SQ(zgiecie.y1 - zgiecie.y2)));
+            double x_norm = (zgiecie.x1 - zgiecie.x2) / sqrt(SQ(zgiecie.x1 - zgiecie.x2) + SQ(zgiecie.y1 - zgiecie.y2));
+            double y_norm = (zgiecie.y1 - zgiecie.y2) / sqrt(SQ(zgiecie.x1 - zgiecie.x2) + SQ(zgiecie.y1 - zgiecie.y2));
             
             x -= zgiecie.x2;
             y -= zgiecie.y2;
 
-            float odbite_x = x * SQ(x_norm) - y * SQ(y_norm) - x_norm * y_norm * (x - y);
-            float odbite_y = y * SQ(y_norm) - x * SQ(x_norm) - x_norm * y_norm * (x + y);
+            double odbite_x = x * SQ(x_norm) - y * SQ(y_norm) - x_norm * y_norm * (x - y);
+            double odbite_y = y * SQ(y_norm) - x * SQ(x_norm) - x_norm * y_norm * (x + y);
 
             x += zgiecie.x2;
             y += zgiecie.y2;
@@ -128,20 +111,20 @@ int main(){
             case 'P':{
                 kartki[i].typ = P;
                 pro* nowy_pro = &kartki[i].kartka.kartka_pro;
-                scanf("%f %f %f %f", &nowy_pro->x1, &nowy_pro->y1, 
+                scanf("%lf %lf %lf %lf", &nowy_pro->x1, &nowy_pro->y1, 
                                          &nowy_pro->x2, &nowy_pro->y2);
                 break;
             }
             case 'K':{
                 kartki[i].typ = K;
                 kol* nowy_kol = &kartki[i].kartka.kartka_kol;
-                scanf("%f %f %f", &nowy_kol->x, &nowy_kol->y, &nowy_kol->r);
+                scanf("%lf %lf %lf", &nowy_kol->x, &nowy_kol->y, &nowy_kol->r);
                 break;
             }
             case 'Z': {
                 kartki[i].typ = Z;
                 zgi* nowy_zgi = &kartki[i].kartka.kartka_zgi;
-                scanf("%d %f %f %f %f", &nowy_zgi->k, &nowy_zgi->x1, 
+                scanf("%d %lf %lf %lf %lf", &nowy_zgi->k, &nowy_zgi->x1, 
                              &nowy_zgi->y1, &nowy_zgi->x2, &nowy_zgi->y2);
                 break;
             }
@@ -152,9 +135,8 @@ int main(){
     // Wczytywanie zapytań i odpowiadanie na nie
     for(int i = 0; i < q; i++){
         int k = 0;
-        float x = 0, y = 0;
-        scanf("%d %f %f", &k, &x, &y);
-
+        double x = 0, y = 0;
+        scanf("%d %lf %lf", &k, &x, &y);
         printf("%d\n", ileWkartce(kartki, k-1, x, y));
     }
     // Zwalniamy pamięć

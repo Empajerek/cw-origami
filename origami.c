@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#define EPS 1e-3
+#define EPS 1e-10
 #define SQ(x) (x)*(x)
 
 // Deklaracje rónych typów kartek, i pojemnika "kartka", 
@@ -39,28 +39,39 @@ int ileWkartce(kartka* kartki, int k, double x, double y){
         }
         case Z: {
             zgi zgiecie = kartki[k].kartka.kartka_zgi;
+            // obliczmy iloczyn wektorowy dla punktów P2 - P1, i (x,y) - P1
+            double ilo_wek = (x - zgiecie.x1) * (zgiecie.y2 - zgiecie.y1) 
+                    - (zgiecie.x2 - zgiecie.x1) * (y - zgiecie.y1);
+            // jeśli (x,y) leży na P1-P2 to wyrzuć 2
+            if(fabs(ilo_wek) < EPS)
+                return 2;
             // jeśli po złej stronie, wyrzuć 0
-            if((x - zgiecie.x1)*(zgiecie.y2 - zgiecie.y1) >= 
-               (zgiecie.x2 - zgiecie.x1)*(y - zgiecie.y1))
+            if(ilo_wek > 0)
                 return 0;
             // jeśli po dobrej, odbij punkt według odcinka P1-P2 zrób dwa 
             // rekursywne zapytania niżej, zsumuj, i wyrzuć wynik
-
-            double x_norm = (zgiecie.x1 - zgiecie.x2) / sqrt(SQ(zgiecie.x1 - zgiecie.x2) + SQ(zgiecie.y1 - zgiecie.y2));
-            double y_norm = (zgiecie.y1 - zgiecie.y2) / sqrt(SQ(zgiecie.x1 - zgiecie.x2) + SQ(zgiecie.y1 - zgiecie.y2));
+            double x_norm = (zgiecie.x1 - zgiecie.x2)
+                            / sqrt(SQ(zgiecie.x1 - zgiecie.x2) 
+                                 + SQ(zgiecie.y1 - zgiecie.y2));
+            double y_norm = (zgiecie.y1 - zgiecie.y2)
+                            / sqrt(SQ(zgiecie.x1 - zgiecie.x2) 
+                                 + SQ(zgiecie.y1 - zgiecie.y2));
             
             x -= zgiecie.x2;
             y -= zgiecie.y2;
 
-            double odbite_x = x * SQ(x_norm) - y * SQ(y_norm) - x_norm * y_norm * (x - y);
-            double odbite_y = y * SQ(y_norm) - x * SQ(x_norm) - x_norm * y_norm * (x + y);
+            double odbite_x = (SQ(x_norm) - SQ(y_norm)) * x 
+                              + 2 * x_norm * y_norm * y;
+            double odbite_y = (SQ(y_norm) - SQ(x_norm)) * y 
+                              + 2 * x_norm * y_norm * x;
 
             x += zgiecie.x2;
             y += zgiecie.y2;
             odbite_x += zgiecie.x2;
             odbite_y += zgiecie.y2;
 
-            return ileWkartce(kartki, zgiecie.k-1, odbite_x, odbite_y) + ileWkartce(kartki, zgiecie.k-1, x, y); 
+            return ileWkartce(kartki, zgiecie.k-1, odbite_x, odbite_y)
+                   + ileWkartce(kartki, zgiecie.k-1, x, y); 
         }
         default:
             return 0;
@@ -98,13 +109,13 @@ int main(){
     // wczytujemy n q, i alokujemy miejsce na kartki
     int n = 0, q = 0;
     scanf("%d %d", &n, &q);
-    kartka* kartki = malloc((unsigned) n * sizeof(kartki));
+    kartka* kartki = malloc((unsigned) n * sizeof(*kartki));
     // Wczytywanie kolejnych kartek, i zapisywanie ich w tablicy
     for(int i = 0; i < n; i++){
         // po pierwszym znaku (P, K, lub Z) wybieramy rodzaj i zapisujemy 
         // kartkę w pamięci
         char typ = 0;
-        while ((getchar()) != '\n');
+        while((getchar()) != '\n');
         scanf("%c", &typ);
 
         switch(typ){

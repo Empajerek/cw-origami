@@ -1,156 +1,184 @@
+/* Autor: Wiktor Kotala
+ * Peer review: Konrad Kaczmarczyk */
+#include <assert.h>
+#include <complex.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
-#define EPS 1e-10
-#define SQ(x) (x)*(x)
 
-// Deklaracje rónych typów kartek, i pojemnika "kartka", 
-// przechowującego kartkę i jej typ
-typedef struct pro{ double x1, y1, x2, y2; } pro;
-typedef struct kol{ double x, y, r; } kol;
-typedef struct zgi{ double x1, y1, x2, y2; int k; } zgi;
-typedef enum { K, P, Z } typ_kartki;
-typedef struct kartka { 
-    typ_kartki typ; 
-    union miejsce_na_kartke { 
-        pro kartka_pro; 
-        kol kartka_kol; 
-        zgi kartka_zgi; 
-    } kartka;
-} kartka;
+const double EPS = 1e-8;
 
-// Sprawdzamy ile razy dany punkt znajduje się w danej kartce.
-int ileWkartce(kartka* kartki, int k, double x, double y){
-    switch(kartki[k].typ){
-        case P: { // nawiasy ponieważ deklarujemy zmienne w case'ach
-            pro prostokat = kartki[k].kartka.kartka_pro;
-            // jeśli w prostokącie, wyrzuć 1, jeśli nie wyrzuć 0
-            if(prostokat.x1 <= x + EPS && x - EPS <= prostokat.x2 &&
-               prostokat.y1 <= y + EPS && y - EPS <= prostokat.y2)
-                return 1;
-            return 0;
-        }
-        case K: {
-            kol kolo = kartki[k].kartka.kartka_kol;
-            // jeśli w kole, wyrzuć 1, jeśli nie wyrzuć 0
-            if(SQ(x - kolo.x) + SQ(y - kolo.y) <= SQ(kolo.r) + EPS)
-                return 1;
-            return 0;
-        }
-        case Z: {
-            zgi zgiecie = kartki[k].kartka.kartka_zgi;
-            // obliczmy iloczyn wektorowy dla punktów P2 - P1, i (x,y) - P1
-            double ilo_wek = (x - zgiecie.x1) * (zgiecie.y2 - zgiecie.y1) 
-                    - (zgiecie.x2 - zgiecie.x1) * (y - zgiecie.y1);
-            // jeśli (x,y) leży na P1-P2 to wyrzuć 2
-            if(fabs(ilo_wek) < EPS)
-                return 2;
-            // jeśli po złej stronie, wyrzuć 0
-            if(ilo_wek > 0)
-                return 0;
-            // jeśli po dobrej, odbij punkt według odcinka P1-P2 zrób dwa 
-            // rekursywne zapytania niżej, zsumuj, i wyrzuć wynik
-            double x_norm = (zgiecie.x1 - zgiecie.x2)
-                            / sqrt(SQ(zgiecie.x1 - zgiecie.x2) 
-                                 + SQ(zgiecie.y1 - zgiecie.y2));
-            double y_norm = (zgiecie.y1 - zgiecie.y2)
-                            / sqrt(SQ(zgiecie.x1 - zgiecie.x2) 
-                                 + SQ(zgiecie.y1 - zgiecie.y2));
-            
-            x -= zgiecie.x2;
-            y -= zgiecie.y2;
+typedef enum { RECTANGLE, CIRCLE, FOLD } sheetType;
 
-            double odbite_x = (SQ(x_norm) - SQ(y_norm)) * x 
-                              + 2 * x_norm * y_norm * y;
-            double odbite_y = (SQ(y_norm) - SQ(x_norm)) * y 
-                              + 2 * x_norm * y_norm * x;
+// Reprezentacja punktu: taka unia sprawia, że point.x == creal(point.value) i point.y == cimag(point.value)
+/// Tak właściwie to nie mam pewności, że to tak działa, ale na testach działa xd i imo poprawia czytelność.. jak wiesz to daj znać
+typedef union {
+    struct {
+        double x;
+        double y;
+    };
+    double complex value;
+} point;
 
-            x += zgiecie.x2;
-            y += zgiecie.y2;
-            odbite_x += zgiecie.x2;
-            odbite_y += zgiecie.y2;
+// Reprezentacja kartki papieru
+typedef struct sheet sheet;
+struct sheet {
+    sheetType type;
 
-            return ileWkartce(kartki, zgiecie.k-1, odbite_x, odbite_y)
-                   + ileWkartce(kartki, zgiecie.k-1, x, y); 
-        }
-        default:
-            return 0;
-    }
+    union {
+        struct {
+            point p1, p2;
+        } rect;
+
+        struct {
+            point p;
+            double r;
+        } circ;
+
+        struct {
+            point p1, p2;
+            sheet *which;
+        } fold;
+    };
+};
+
+bool less(double x, double y) {
+    return x < y - EPS;
 }
 
-/*
-                              |b
-                               ||
-                               ||,
-                               |'\
-                                |`|
-                                | `|
-                                '| |.
-                                 | `L
-                                 |  |,
-                                 `|  |.                              _,/7
-                                  |  `|                       __,---'' /
-                                  |   `|              __,---'"   ..- ./
-                                  ||   |      _.--=/'',--=-,,  -    ,/
-                                  `|   \,/'''`\,     /'   >  \     /'
-                                   | ,/'  `. .  `\ ,/'   / \  \   /'
-                           ___,----Y-'      Y     7'   .'.' `\ \ /'
-                       _-/''        `\.     .   ,/'    /.'    `\\ 
-                   _,-''          ---  \    `  /'    ./.'   __-' "
-                _/''     .--            `\    /'     /,'_--'
-             ,/''  ..                     `"\_     ./ /='etb
-         .,/'                             .--"\    / / 
-        <------------------,_____      ,/~'  \ | ./ .'
-                                `"""""""      `|_/\ /
+bool lessOrEqual(double x, double y) {
+    return x < y + EPS;
+}
 
-*/
+// Zwraca odległość między punktami p, q
+double dist(point p, point q) {
+    return cabs(p.value - q.value);
+}
 
-int main(){
-    // wczytujemy n q, i alokujemy miejsce na kartki
-    int n = 0, q = 0;
-    scanf("%d %d", &n, &q);
-    kartka* kartki = malloc((unsigned) n * sizeof(*kartki));
-    // Wczytywanie kolejnych kartek, i zapisywanie ich w tablicy
-    for(int i = 0; i < n; i++){
-        // po pierwszym znaku (P, K, lub Z) wybieramy rodzaj i zapisujemy 
-        // kartkę w pamięci
-        char typ = 0;
-        while((getchar()) != '\n');
-        scanf("%c", &typ);
+// Zwraca iloczyn wektorowy wektorów a->b i a->c
+double crossProduct(point a, point b, point c) {
+    return cimag(conj(b.value - a.value) * (c.value - a.value));
+}
 
-        switch(typ){
-            case 'P':{
-                kartki[i].typ = P;
-                pro* nowy_pro = &kartki[i].kartka.kartka_pro;
-                scanf("%lf %lf %lf %lf", &nowy_pro->x1, &nowy_pro->y1, 
-                                         &nowy_pro->x2, &nowy_pro->y2);
+// Zwraca odbicie punktu p względem prostej a->b
+point reflection(point p, point a, point b) {
+    // Ustalenie a jako środka układu współrzędnych
+    p.value -= a.value; // przesunięcie p
+    b.value -= a.value; // przesunięcie b
+
+    // Ustalenie b jako osi X
+    p.value /= b.value; // obrócenie p
+
+    // Odbicie p względem prostej a->b (osi X)
+    p.value = conj(p.value);
+
+    return (point) {.value = p.value * b.value + a.value}; // odwrócenie przekształceń
+}
+
+// Wczytuje i zwraca punkt
+point readPoint() {
+    point p;
+    assert(scanf("%lf %lf", &p.x, &p.y) == 2);
+    return p;
+}
+
+// Wczytuje i zwraca tablicę kartek
+sheet *readSheets(int n) {
+    sheet *sheets = (sheet *) malloc(sizeof(sheet) * (size_t) n);
+
+    for (int i = 0; i < n; i++) {
+        char type;
+        assert(scanf(" %c", &type) == 1);
+
+        switch (type) {
+            case 'P':
+                sheets[i].type = RECTANGLE;
+                sheets[i].rect.p1 = readPoint();
+                sheets[i].rect.p2 = readPoint();
                 break;
-            }
-            case 'K':{
-                kartki[i].typ = K;
-                kol* nowy_kol = &kartki[i].kartka.kartka_kol;
-                scanf("%lf %lf %lf", &nowy_kol->x, &nowy_kol->y, &nowy_kol->r);
+            case 'K':
+                sheets[i].type = CIRCLE;
+                sheets[i].circ.p = readPoint();
+                assert(scanf("%lf", &sheets[i].circ.r) == 1);
                 break;
-            }
-            case 'Z': {
-                kartki[i].typ = Z;
-                zgi* nowy_zgi = &kartki[i].kartka.kartka_zgi;
-                scanf("%d %lf %lf %lf %lf", &nowy_zgi->k, &nowy_zgi->x1, 
-                             &nowy_zgi->y1, &nowy_zgi->x2, &nowy_zgi->y2);
-                break;
-            }
-            default:
+            case 'Z':
+                sheets[i].type = FOLD;
+                int k;
+                assert(scanf("%d", &k) == 1);
+                sheets[i].fold.p1 = readPoint();
+                sheets[i].fold.p2 = readPoint();
+                sheets[i].fold.which = &sheets[k - 1];
                 break;
         }
     }
-    // Wczytywanie zapytań i odpowiadanie na nie
-    for(int i = 0; i < q; i++){
-        int k = 0;
-        double x = 0, y = 0;
-        scanf("%d %lf %lf", &k, &x, &y);
-        printf("%d\n", ileWkartce(kartki, k-1, x, y));
+    return sheets;
+}
+
+/* Zwraca, czy punkt p należy do kartki shape (w kształcie prostokąta lub koła)
+ * Warunek początkowy: shape -> type != FOLD */
+bool isInSheet(point p, const sheet *shape) {
+    if (shape->type == RECTANGLE) {
+        return lessOrEqual(shape->rect.p1.x, p.x) && lessOrEqual(p.x, shape->rect.p2.x) &&
+               lessOrEqual(shape->rect.p1.y, p.y) && lessOrEqual(p.y, shape->rect.p2.y);
     }
-    // Zwalniamy pamięć
-    free(kartki);
+    else if (shape->type == CIRCLE) {
+        return lessOrEqual(dist(shape->circ.p, p), shape->circ.r);
+    }
+    __builtin_unreachable(); // shape -> type powinien być RECTANGLE lub CIRCLE!
+}
+
+/* Zwraca tablicę punktów sprzed złożenia foldSheet odpowiadających punktom z points
+ * Aktualizuje pointsCount na rozmiar zwracanej tablicy
+ * Warunek początkowy: foldSheet -> type == FOLD */
+point *foldPoints(point *points, int *pointsCount, const sheet *foldSheet) {
+    point *newPoints = (point *) malloc(sizeof(point) * (size_t) (*pointsCount) * 2);
+    int newPointsCount = 0;
+
+    for (int i = 0; i < *pointsCount; i++) {
+        double crossProd = crossProduct(foldSheet->fold.p1, foldSheet->fold.p2, points[i]);
+        if (lessOrEqual(0, crossProd)) { // punkt leży na prostej lub po jej lewej stronie
+            newPoints[newPointsCount++] = points[i];
+        }
+        if (less(0, crossProd)) { // punkt leży po lewej stronie prostej
+            newPoints[newPointsCount++] = reflection(points[i], foldSheet->fold.p1, foldSheet->fold.p2);
+        }
+    }
+
+    newPoints = (point *) realloc(newPoints, sizeof(point) * (size_t) (newPointsCount));
+    *pointsCount = newPointsCount;
+    free(points);
+    return newPoints;
+}
+
+int main() {
+    int n, q;
+    assert(scanf("%d %d", &n, &q) == 2);
+    sheet *sheets = readSheets(n);
+
+    while (q--) {
+        int k;
+        assert(scanf("%d", &k) == 1);
+        point pin = readPoint();
+        sheet *currSheet = &sheets[k - 1];
+
+        int pointsCount = 1;
+        point *points = (point *) malloc(sizeof(point) * (size_t) pointsCount);
+        points[0] = pin;
+
+        while (currSheet->type == FOLD) {
+            points = foldPoints(points, &pointsCount, currSheet);
+            currSheet = currSheet->fold.which;
+        }
+
+        int ans = 0;
+        for (int i = 0; i < pointsCount; i++) {
+            ans += (int) isInSheet(points[i], currSheet);
+        }
+
+        free(points);
+        printf("%d\n", ans);
+    }
+
+    free(sheets);
     return 0;
 }

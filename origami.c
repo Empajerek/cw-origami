@@ -12,7 +12,7 @@ typedef struct zgi{ double x1, y1, x2, y2; int k; } zgi;
 typedef enum { K, P, Z } typ_kartki;
 typedef struct { 
     typ_kartki typ; 
-    union miejsce_na_kartke { 
+    union { 
         pro kartka_pro; 
         kol kartka_kol; 
         zgi kartka_zgi; 
@@ -39,22 +39,23 @@ int ileWkartce(kartka* kartki, int k, double x, double y){
         }
         case Z: {
             zgi zgiecie = kartki[k].kartka.kartka_zgi;
-
+            // przesuwamy punkty o -P2
             zgiecie.x1 -= zgiecie.x2;
             zgiecie.y1 -= zgiecie.y2;
             x -= zgiecie.x2;
             y -= zgiecie.y2;
-            // obliczmy iloczyn wektorowy dla punktów P2 - P1, i (x,y) - P1
+            // obliczamy iloczyn wektorowy dla punktów P1, i (x,y)
             double ilo_wek = x * zgiecie.y1 - zgiecie.x1 * y;
-            // jeśli (x,y) w zgieciu to wyrzucamy 1
+            // jeśli (x,y) w zgieciu to zrób rekursywne zapytanie niżej
+            // i wyrzuć wynik
             if(fabs(ilo_wek) < EPS)
                 return ileWkartce(kartki, zgiecie.k-1, x + zgiecie.x2, 
                                                        y + zgiecie.y2);
             // jeśli po złej stronie, wyrzuć 0
             if(ilo_wek < EPS)
                 return 0;
-            // jeśli po dobrej, odbij punkt według odcinka P1-P2 zrób dwa 
-            // rekursywne zapytania niżej, zsumuj, i wyrzuć wynik
+            // jeśli po dobrej, odbij punkt według P1 zrób dwa rekursywne
+            // zapytania niżej, zsumuj, i wyrzuć wynik
             double x_norm = zgiecie.x1 / sqrt(SQ(zgiecie.x1) + SQ(zgiecie.y1));
             double y_norm = zgiecie.y1 / sqrt(SQ(zgiecie.x1) + SQ(zgiecie.y1));
 
@@ -62,19 +63,14 @@ int ileWkartce(kartka* kartki, int k, double x, double y){
                               + 2 * x_norm * y_norm * y;
             double odbite_y = (SQ(y_norm) - SQ(x_norm)) * y 
                               + 2 * x_norm * y_norm * x;
-
+            // wracamy punktami
             x += zgiecie.x2;
             y += zgiecie.y2;
             odbite_x += zgiecie.x2;
             odbite_y += zgiecie.y2;
             zgiecie.x1 += zgiecie.x2;
             zgiecie.y1 += zgiecie.y2;
-            /*
-            printf("    P1 : %lf %lf\n", zgiecie.x1, zgiecie.y1);
-            printf("    P2 : %lf %lf\n", zgiecie.x2, zgiecie.y2);
-            printf("    PKT: %lf %lf\n", x, y);
-            printf("    MIR: %lf %lf\n", odbite_x, odbite_y);
-            */
+
             return ileWkartce(kartki, zgiecie.k-1, odbite_x, odbite_y)
                    + ileWkartce(kartki, zgiecie.k-1, x, y); 
         }
@@ -118,7 +114,7 @@ int main(){
     // Wczytywanie kolejnych kartek, i zapisywanie ich w tablicy
     for(int i = 0; i < n; i++){
         // po pierwszym znaku (P, K, lub Z) wybieramy rodzaj i zapisujemy 
-        // kartkę w pamięci
+        // odpowiednio kartkę w pamięci
         char typ = 0;
         while((getchar()) != '\n');
         scanf("%c", &typ);
